@@ -54,16 +54,16 @@ from module_1 import (
 
 
 # ============================================================
-# MODULE 2 CONFIGURATION
+# SETTINGS IMPORTS
 # ============================================================
 
-NUMBER_OF_IMAGES = 12
-TEST_FRAME_COUNT = 5
-
-FPS            = 30
-IMAGE_DURATION = 0.1
-
-SOURCE_SCALE = 2.0
+from project_configurations import (
+    NUMBER_OF_IMAGES,
+    TEST_FRAME_COUNT,
+    MODULE_2_FPS as FPS,
+    IMAGE_DURATION,
+    SOURCE_SCALE,
+)
 
 FRAMES_DIR    = OUTPUT_DIR / "module_2_frames"
 VIDEO_OUTPUT  = OUTPUT_DIR / "module_2_output.mp4"
