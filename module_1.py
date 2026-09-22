@@ -39,7 +39,7 @@ BLUR_ENABLED = True
 BLUR_RADIUS = 12
 
 # Pixel radius around the target text that stays 100% sharp
-FOCUS_RADIUS = 60
+FOCUS_RADIUS = 80
 
 # Pixel distance over which the image transitions from
 # sharp to maximum blur (feathering zone)
