@@ -364,8 +364,9 @@
 
     <div class="sidebar">
         <div class="logo">PaperAnimator</div>
-        <div class="nav-item active" onclick="switchTab('create')">Create</div>
-        <div class="nav-item" onclick="switchTab('creations')">Creations</div>
+        <div class="nav-item active" onclick="switchTab('create', event)">Create</div>
+        <div class="nav-item" onclick="switchTab('creations', event)">Creations</div>
+        <div class="nav-item" onclick="switchTab('settings', event)">Settings</div>
     </div>
 
     <div class="main-content">
@@ -507,6 +508,25 @@
                 <!-- Populated via JS -->
             </div>
         </div>
+
+        <!-- SETTINGS SCREEN -->
+        <div id="settings-screen" class="screen" style="padding: 2rem 3rem; overflow-y: auto; display: none;">
+            <h1>Settings</h1>
+            
+            <div class="form-section" style="max-width: 600px; margin-top: 1.5rem;">
+                <div class="form-section-title">Output Storage</div>
+                <div class="form-group">
+                    <label>Output Path</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="storage_path" style="flex: 1;" placeholder="C:\...\output">
+                        <button type="button" class="btn" style="width: auto; padding: 0.6rem 1rem;" onclick="browseStorage()">📁 Browse</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" class="btn" onclick="saveStorageSettings()">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div id="toast">Message</div>
@@ -524,12 +544,25 @@
         });
 
         // Tab Switching
-        function switchTab(tabId) {
+        function switchTab(tabId, event) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.screen').forEach(el => el.style.display = ''); // reset inline displays
             
-            event.target.classList.add('active');
-            document.getElementById(tabId + '-screen').classList.add('active');
+            if (event) {
+                event.target.classList.add('active');
+            } else {
+                // Find nav item manually if no event
+                document.querySelectorAll('.nav-item').forEach(el => {
+                    if (el.textContent.toLowerCase() === tabId) el.classList.add('active');
+                });
+            }
+            
+            const screen = document.getElementById(tabId + '-screen');
+            screen.classList.add('active');
+            if (tabId === 'settings' || tabId === 'creations') {
+                screen.style.display = 'block';
+            }
             
             if (tabId === 'creations') {
                 renderCreations();
@@ -739,21 +772,55 @@
             let hasActiveTasks = false;
 
             tasks.forEach(task => {
-                if (task.status === 'PENDING' || task.status === 'PROGRESS') {
+                if (task.status === 'PENDING' || task.status === 'PROGRESS' || task.status === 'RUNNING') {
                     hasActiveTasks = true;
                 }
                 
                 let actionBtn = '';
                 if (task.status === 'SUCCESS' && task.output_file) {
-                    actionBtn = `<div style="font-size: 0.8rem; color: var(--success); word-break: break-all;">Output: ${task.output_file}</div>`;
+                    const escapedPath = task.output_file.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                    actionBtn = `
+                        <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all; margin-top:1rem; margin-bottom: 0.5rem;">
+                            Output: <span style="color:var(--text-color)">${task.output_file}</span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="openFile('${escapedPath}')" style="background-color: var(--sidebar-bg); border: 1px solid var(--border); color: var(--text-color); padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; font-weight: 500;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='var(--sidebar-bg)'">▶ Open</button>
+                            <button onclick="openLocation('${escapedPath}')" style="background-color: var(--sidebar-bg); border: 1px solid var(--border); color: var(--text-color); padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; font-weight: 500;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='var(--sidebar-bg)'">📁 Open File Location</button>
+                        </div>
+                    `;
+                } else if (task.status === 'FAILURE' && task.error) {
+                    actionBtn = `<div style="font-size: 0.8rem; color: var(--danger); word-break: break-all; margin-top:0.5rem">Error: ${task.error}</div>`;
+                }
+
+                let progressHtml = '';
+                if (task.total_frames && task.total_frames > 0) {
+                    const completed = task.completed_frames || 0;
+                    const total = task.total_frames;
+                    const pct = Math.round(task.progress_percentage || 0);
+                    
+                    const totalBlocks = 14;
+                    const filledBlocks = Math.floor((pct / 100) * totalBlocks);
+                    const emptyBlocks = totalBlocks - filledBlocks;
+                    const bar = '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+
+                    progressHtml = `
+                        <div style="font-family: monospace; font-size: 0.85rem; margin-top: 1rem; color: var(--text-muted);">
+                            <div style="margin-bottom: 0.5rem;">Frame ${completed} / ${total}</div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span>${bar}</span>
+                                <span>${pct}%</span>
+                            </div>
+                        </div>
+                    `;
                 }
 
                 const card = document.createElement('div');
                 card.className = 'creation-card';
                 card.innerHTML = `
-                    <div class="creation-info">
+                    <div class="creation-info" style="flex: 1;">
                         <h3>"${task.target_text}"</h3>
                         <div class="creation-meta">${task.file_name} • ${task.created_at}</div>
+                        ${progressHtml}
                         ${actionBtn}
                     </div>
                     <div class="status-badge status-${task.status.toLowerCase()}" id="badge-${task.id}">
@@ -773,7 +840,7 @@
         }
 
         async function pollActiveTasks() {
-            const tasks = getTasks().filter(t => t.status === 'PENDING' || t.status === 'PROGRESS');
+            const tasks = getTasks().filter(t => t.status === 'PENDING' || t.status === 'PROGRESS' || t.status === 'RUNNING');
             
             if (tasks.length === 0) {
                 clearInterval(pollingInterval);
@@ -788,11 +855,15 @@
                     const res = await fetch(`/api/generate/status/${task.id}/`);
                     const data = await res.json();
                     
-                    if (data.status !== task.status) {
+                    if (data.status !== task.status || data.progress_percentage !== task.progress_percentage) {
                         changed = true;
                         updateTaskInLocalStorage(task.id, { 
                             status: data.status,
-                            output_file: data.result ? data.result.output_file : null
+                            output_file: data.output_file || (data.result ? data.result.output_file : null),
+                            total_frames: data.total_frames,
+                            completed_frames: data.completed_frames,
+                            progress_percentage: data.progress_percentage,
+                            error: data.error
                         });
                     }
                 } catch (e) {
@@ -805,11 +876,82 @@
             }
         }
         
+        async function openFile(filePath) {
+            try {
+                await fetch('/api/open-file/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ file_path: filePath })
+                });
+            } catch (e) {
+                console.error("Failed to open file", e);
+            }
+        }
+
+        async function openLocation(filePath) {
+            try {
+                await fetch('/api/open-location/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ file_path: filePath })
+                });
+            } catch (e) {
+                console.error("Failed to open location", e);
+            }
+        }
+        
+        // Settings Logic
+        async function fetchSettings() {
+            try {
+                const res = await fetch('/api/settings/storage/');
+                const data = await res.json();
+                if (data.output_path) {
+                    document.getElementById('storage_path').value = data.output_path;
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        }
+
+        async function saveStorageSettings() {
+            try {
+                const path = document.getElementById('storage_path').value;
+                const res = await fetch('/api/settings/storage/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ output_path: path })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("Settings saved successfully!");
+                } else {
+                    showToast("Error: " + data.error);
+                }
+            } catch (e) {
+                showToast("Failed to save settings");
+            }
+        }
+
+        async function browseStorage() {
+            try {
+                const res = await fetch('/api/settings/browse/', { method: 'POST' });
+                const data = await res.json();
+                if (data.success && data.path) {
+                    document.getElementById('storage_path').value = data.path;
+                } else if (!data.success) {
+                    showToast("Error: " + data.error);
+                }
+            } catch (e) {
+                console.error("Failed to browse", e);
+            }
+        }
+
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
             adjustPreviewBox();
             fetchPreview(); // Initial preview fetch
             renderCreations();
+            fetchSettings();
         });
         
     </script>
