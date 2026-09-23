@@ -32,20 +32,7 @@ OUTPUT_DIR.mkdir(
 # SETTINGS IMPORTS
 # ============================================================
 
-from project_configurations import (
-    BLUR_ENABLED,
-    BLUR_RADIUS,
-    FOCUS_RADIUS,
-    FEATHER_RADIUS,
-    HIGHLIGHT_ENABLED,
-    HIGHLIGHT_COLOR,
-    HIGHLIGHT_OPACITY,
-    HIGHLIGHT_PADDING_X,
-    HIGHLIGHT_PADDING_Y,
-    HIGHLIGHT_WOBBLE,
-    HIGHLIGHT_OFFSET_Y,
-    M1_ASPECT_RATIOS as ASPECT_RATIOS,
-)
+from project_configurations import get_merged_config, DEFAULT_CONFIG
 
 
 # ============================================================
@@ -173,7 +160,8 @@ def select_aspect_ratio():
     print("SELECT ASPECT RATIO")
     print("=" * 60)
 
-    for key, value in ASPECT_RATIOS.items():
+    aspect_ratios = get_merged_config()["M1_ASPECT_RATIOS"]
+    for key, value in aspect_ratios.items():
 
         print(
             f"{key}. {value['name']} "
@@ -188,9 +176,9 @@ def select_aspect_ratio():
             "Select number: "
         ).strip()
 
-        if choice in ASPECT_RATIOS:
+        if choice in aspect_ratios:
 
-            return ASPECT_RATIOS[choice]
+            return aspect_ratios[choice]
 
         print(
             "Invalid selection."
@@ -511,12 +499,7 @@ def _hex_to_rgb(hex_color):
 def draw_target_highlight(
     image,
     target_bbox,
-    color=HIGHLIGHT_COLOR,
-    opacity=HIGHLIGHT_OPACITY,
-    padding_x=HIGHLIGHT_PADDING_X,
-    padding_y=HIGHLIGHT_PADDING_Y,
-    wobble=HIGHLIGHT_WOBBLE,
-    offset_y=HIGHLIGHT_OFFSET_Y,
+    config=None,
 ):
     """
     Draw a semi-transparent marker-stroke highlight behind
@@ -543,6 +526,14 @@ def draw_target_highlight(
         offset_y   : Pixels to shift the highlight downward
                      without moving the text (default 4).
     """
+
+    config = get_merged_config(config)
+    color = config["HIGHLIGHT_COLOR"]
+    opacity = int(config["HIGHLIGHT_OPACITY"])
+    padding_x = int(config["HIGHLIGHT_PADDING_X"])
+    padding_y = int(config["HIGHLIGHT_PADDING_Y"])
+    wobble = int(config["HIGHLIGHT_WOBBLE"])
+    offset_y = int(config["HIGHLIGHT_OFFSET_Y"])
 
     x1, y1, x2, y2 = target_bbox
 
@@ -647,9 +638,7 @@ def draw_target_highlight(
 def apply_radial_blur(
     image,
     target_bbox,
-    blur_radius=BLUR_RADIUS,
-    focus_radius=FOCUS_RADIUS,
-    feather_radius=FEATHER_RADIUS,
+    config=None,
 ):
     """
     Apply a smooth radial depth-of-field blur effect.
@@ -672,6 +661,11 @@ def apply_radial_blur(
     Returns:
         PIL Image with radial blur applied.
     """
+
+    config = get_merged_config(config)
+    blur_radius = int(config["BLUR_RADIUS"])
+    focus_radius = int(config["FOCUS_RADIUS"])
+    feather_radius = int(config["FEATHER_RADIUS"])
 
     width, height = image.size
 
@@ -757,6 +751,7 @@ def create_page(
     font_path,
     target_text,
     aspect_ratio,
+    config=None,
 ):
     """
     Create one static page composition.
@@ -866,17 +861,12 @@ def create_page(
     # word itself is never covered.
     # --------------------------------------------------------
 
-    if HIGHLIGHT_ENABLED and target_bbox is not None:
+    if config["HIGHLIGHT_ENABLED"] and target_bbox is not None:
 
         draw_target_highlight(
             image=paper,
             target_bbox=target_bbox,
-            color=HIGHLIGHT_COLOR,
-            opacity=HIGHLIGHT_OPACITY,
-            padding_x=HIGHLIGHT_PADDING_X,
-            padding_y=HIGHLIGHT_PADDING_Y,
-            wobble=HIGHLIGHT_WOBBLE,
-            offset_y=HIGHLIGHT_OFFSET_Y,
+            config=config,
         )
 
     # --------------------------------------------------------
@@ -905,14 +895,12 @@ def create_page(
     # the surrounding paragraph fades to blur.
     # --------------------------------------------------------
 
-    if BLUR_ENABLED and target_bbox is not None:
+    if config["BLUR_ENABLED"] and target_bbox is not None:
 
         paper = apply_radial_blur(
             image=paper,
             target_bbox=target_bbox,
-            blur_radius=BLUR_RADIUS,
-            focus_radius=FOCUS_RADIUS,
-            feather_radius=FEATHER_RADIUS,
+            config=config,
         )
 
     return paper, target_bbox
@@ -933,16 +921,17 @@ def main():
     # Blur settings
     # --------------------------------------------------------
 
+    config = get_merged_config()
     print()
-    print(f"Blur enabled      : {BLUR_ENABLED}")
-    print(f"Blur radius       : {BLUR_RADIUS}")
-    print(f"Focus radius      : {FOCUS_RADIUS}")
-    print(f"Feather radius    : {FEATHER_RADIUS}")
+    print(f"Blur enabled      : {config['BLUR_ENABLED']}")
+    print(f"Blur radius       : {config['BLUR_RADIUS']}")
+    print(f"Focus radius      : {config['FOCUS_RADIUS']}")
+    print(f"Feather radius    : {config['FEATHER_RADIUS']}")
     print()
-    print(f"Highlight enabled : {HIGHLIGHT_ENABLED}")
-    print(f"Highlight color   : {HIGHLIGHT_COLOR}")
-    print(f"Highlight opacity : {HIGHLIGHT_OPACITY}")
-    print(f"Highlight padding : x={HIGHLIGHT_PADDING_X}  y={HIGHLIGHT_PADDING_Y}")
+    print(f"Highlight enabled : {config['HIGHLIGHT_ENABLED']}")
+    print(f"Highlight color   : {config['HIGHLIGHT_COLOR']}")
+    print(f"Highlight opacity : {config['HIGHLIGHT_OPACITY']}")
+    print(f"Highlight padding : x={config['HIGHLIGHT_PADDING_X']}  y={config['HIGHLIGHT_PADDING_Y']}")
 
     # --------------------------------------------------------
     # Load assets

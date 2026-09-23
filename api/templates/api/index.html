@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperAnimator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --sidebar-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --input-bg: #0f172a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            padding: 0 1.5rem 1.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            color: var(--text-color);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.1);
+            border-right: 3px solid var(--accent);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .screen.active {
+            display: flex; /* For create screen */
+        }
+        
+        #creations-screen.active {
+            display: block;
+            overflow-y: auto;
+            padding: 2rem 3rem;
+        }
+        
+        #creations-screen h1 {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* 3-Part Create Layout */
+        .preview-container {
+            flex: 1;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        .settings-panel {
+            width: 450px;
+            background-color: var(--sidebar-bg);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .settings-panel h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+        
+        /* Live Preview */
+        .preview-box {
+            position: relative;
+            background-color: #000;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 100%;
+            max-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        #preview-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.2s ease;
+        }
+        
+        #preview-img.loading {
+            opacity: 0.4;
+        }
+        
+        .preview-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 1.5rem 2rem;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+            display: none;
+        }
+        
+        .preview-loader.active {
+            display: flex;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Forms */
+        .form-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-section-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="color"],
+        select,
+        textarea {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input {
+            width: auto;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background-color: var(--border);
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        /* Grid layouts for form */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        /* Creations List */
+        .creation-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .creation-info h3 {
+            margin-bottom: 0.25rem;
+        }
+
+        .creation-meta {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+        .status-progress { background: rgba(59, 130, 246, 0.1); color: var(--accent); }
+        .status-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .status-failure { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        
+        /* Toast notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @keyframes fadein {
+            from {bottom: 0; opacity: 0;}
+            to {bottom: 30px; opacity: 1;}
+        }
+        @keyframes fadeout {
+            from {bottom: 30px; opacity: 1;}
+            to {bottom: 0; opacity: 0;}
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">PaperAnimator</div>
+        <div class="nav-item active" onclick="switchTab('create')">Create</div>
+        <div class="nav-item" onclick="switchTab('creations')">Creations</div>
+    </div>
+
+    <div class="main-content">
+        <!-- CREATE SCREEN (3-Part Layout) -->
+        <div id="create-screen" class="screen active">
+            
+            <!-- LIVE PREVIEW AREA -->
+            <div class="preview-container">
+                <div class="preview-box" id="preview-box">
+                    <img id="preview-img" src="" alt="Live Preview">
+                    <div class="preview-loader" id="preview-loader">
+                        <div class="spinner"></div>
+                        <div style="font-size:0.85rem;color:var(--text-muted)">Generating Preview...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SETTINGS PANEL -->
+            <div class="settings-panel">
+                <h2>Animation Settings</h2>
+                <form id="generate-form">
+                    <div class="form-section">
+                        <div class="form-section-title">General</div>
+                        <div class="form-group">
+                            <label>Target Text</label>
+                            <input type="text" id="target_text" required placeholder="e.g. artificial intelligence" class="preview-trigger">
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Aspect Ratio</label>
+                                <select id="aspect_ratio" class="preview-trigger">
+                                    <option value="1">9:16 (Vertical)</option>
+                                    <option value="2">16:9 (Horizontal)</option>
+                                    <option value="3">1:1 (Square)</option>
+                                    <option value="4">4:5 (Portrait)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Images (Export only)</label>
+                                <input type="number" id="n_images" value="12" min="1" max="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Output Filename (Optional)</label>
+                            <input type="text" id="file_name" placeholder="custom_name">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Video Settings</div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>FPS</label>
+                                <input type="number" id="module_2_fps" value="30" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Image Duration (s)</label>
+                                <input type="number" id="image_duration" value="0.1" step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Source Scale</label>
+                            <input type="number" id="source_scale" value="2.0" step="0.1" class="preview-trigger">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="blur_enabled" checked class="preview-trigger">
+                                <label for="blur_enabled">Enable Radial Blur</label>
+                            </div>
+                        </div>
+                        <div class="grid-3" id="blur-settings">
+                            <div class="form-group">
+                                <label>Blur Radius</label>
+                                <input type="number" id="blur_radius" value="12" min="0" class="preview-trigger">
+                            </div>
+                            <div class="form-group">
+                                <label>Focus Radius</label>
+                                <input type="number" id="focus_radius" value="80" min="0" class="preview-trigger">
+                            </div>
+                            <div class="form-group">
+                                <label>Feather Radius</label>
+                                <input type="number" id="feather_radius" value="250" min="0" class="preview-trigger">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="highlight_enabled" checked class="preview-trigger">
+                                <label for="highlight_enabled">Enable Highlight</label>
+                            </div>
+                        </div>
+                        <div id="highlight-settings">
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Color</label>
+                                    <input type="color" id="highlight_color" value="#FFF200" class="preview-trigger">
+                                </div>
+                                <div class="form-group">
+                                    <label>Opacity (0-255)</label>
+                                    <input type="number" id="highlight_opacity" value="180" min="0" max="255" class="preview-trigger">
+                                </div>
+                            </div>
+                            <div class="grid-3">
+                                <div class="form-group">
+                                    <label>Padding X</label>
+                                    <input type="number" id="highlight_padding_x" value="10" class="preview-trigger">
+                                </div>
+                                <div class="form-group">
+                                    <label>Padding Y</label>
+                                    <input type="number" id="highlight_padding_y" value="13" class="preview-trigger">
+                                </div>
+                                <div class="form-group">
+                                    <label>Offset Y</label>
+                                    <input type="number" id="highlight_offset_y" value="4" class="preview-trigger">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Wobble Amount</label>
+                                <input type="number" id="highlight_wobble" value="3" min="0" class="preview-trigger">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="submit-btn">Generate Animation</button>
+                </form>
+            </div>
+            
+        </div>
+
+        <!-- CREATIONS SCREEN -->
+        <div id="creations-screen" class="screen">
+            <h1>Creations</h1>
+            <div id="creations-list">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast">Message</div>
+
+    <script>
+        // Toggle disabled states based on checkboxes
+        document.getElementById('blur_enabled').addEventListener('change', (e) => {
+            const inputs = document.querySelectorAll('#blur-settings input');
+            inputs.forEach(input => input.disabled = !e.target.checked);
+        });
+
+        document.getElementById('highlight_enabled').addEventListener('change', (e) => {
+            const inputs = document.querySelectorAll('#highlight-settings input');
+            inputs.forEach(input => input.disabled = !e.target.checked);
+        });
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId + '-screen').classList.add('active');
+            
+            if (tabId === 'creations') {
+                renderCreations();
+            } else if (tabId === 'create') {
+                // Resize preview to fit
+                adjustPreviewBox();
+            }
+        }
+        
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Live Preview Logic
+        let previewDebounceTimer;
+        
+        function getFormPayload() {
+            return {
+                target_text: document.getElementById('target_text').value || 'PaperAnimator',
+                aspect_ratio: document.getElementById('aspect_ratio').value,
+                settings: {
+                    BLUR_ENABLED: document.getElementById('blur_enabled').checked,
+                    BLUR_RADIUS: parseInt(document.getElementById('blur_radius').value) || 0,
+                    FOCUS_RADIUS: parseInt(document.getElementById('focus_radius').value) || 0,
+                    FEATHER_RADIUS: parseInt(document.getElementById('feather_radius').value) || 0,
+                    
+                    HIGHLIGHT_ENABLED: document.getElementById('highlight_enabled').checked,
+                    HIGHLIGHT_COLOR: document.getElementById('highlight_color').value,
+                    HIGHLIGHT_OPACITY: parseInt(document.getElementById('highlight_opacity').value) || 0,
+                    HIGHLIGHT_PADDING_X: parseInt(document.getElementById('highlight_padding_x').value) || 0,
+                    HIGHLIGHT_PADDING_Y: parseInt(document.getElementById('highlight_padding_y').value) || 0,
+                    HIGHLIGHT_OFFSET_Y: parseInt(document.getElementById('highlight_offset_y').value) || 0,
+                    HIGHLIGHT_WOBBLE: parseInt(document.getElementById('highlight_wobble').value) || 0,
+                    
+                    SOURCE_SCALE: parseFloat(document.getElementById('source_scale').value) || 2.0,
+                }
+            };
+        }
+        
+        async function fetchPreview() {
+            const loader = document.getElementById('preview-loader');
+            const img = document.getElementById('preview-img');
+            
+            loader.classList.add('active');
+            img.classList.add('loading');
+            
+            const payload = getFormPayload();
+            
+            // Set aspect ratio dynamically for the preview box (width / height)
+            let ar = "9 / 16";
+            if (payload.aspect_ratio === "2") ar = "16 / 9";
+            else if (payload.aspect_ratio === "3") ar = "1 / 1";
+            else if (payload.aspect_ratio === "4") ar = "4 / 5";
+            
+            document.getElementById('preview-box').style.aspectRatio = ar;
+            
+            try {
+                const response = await fetch('/api/preview/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const objectURL = URL.createObjectURL(blob);
+                    
+                    img.onload = () => {
+                        URL.revokeObjectURL(img.src); // free memory
+                        loader.classList.remove('active');
+                        img.classList.remove('loading');
+                    };
+                    img.src = objectURL;
+                } else {
+                    console.error("Preview failed");
+                    loader.classList.remove('active');
+                    img.classList.remove('loading');
+                }
+            } catch (error) {
+                console.error("Preview error", error);
+                loader.classList.remove('active');
+                img.classList.remove('loading');
+            }
+        }
+        
+        function schedulePreview() {
+            clearTimeout(previewDebounceTimer);
+            previewDebounceTimer = setTimeout(() => {
+                fetchPreview();
+            }, 400); // 400ms debounce
+        }
+        
+        // Attach preview trigger to all relevant inputs
+        document.querySelectorAll('.preview-trigger').forEach(input => {
+            input.addEventListener('input', schedulePreview);
+            input.addEventListener('change', schedulePreview);
+        });
+        
+        function adjustPreviewBox() {
+            // Keep the preview box sized nicely within the container
+            const container = document.querySelector('.preview-container');
+            const box = document.getElementById('preview-box');
+            
+            const maxW = container.clientWidth - 64;
+            const maxH = container.clientHeight - 64;
+            
+            box.style.maxWidth = `${maxW}px`;
+            box.style.maxHeight = `${maxH}px`;
+        }
+        
+        window.addEventListener('resize', adjustPreviewBox);
+
+        // Form Submission
+        document.getElementById('generate-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerText = 'Submitting...';
+
+            const payload = getFormPayload();
+            // Add non-preview settings
+            payload.n_images = parseInt(document.getElementById('n_images').value);
+            payload.file_name = document.getElementById('file_name').value || undefined;
+            payload.settings.MODULE_2_FPS = parseInt(document.getElementById('module_2_fps').value);
+            payload.settings.IMAGE_DURATION = parseFloat(document.getElementById('image_duration').value);
+
+            try {
+                const response = await fetch('/api/generate/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    saveTaskToLocalStorage({
+                        id: data.task_id,
+                        target_text: payload.target_text,
+                        file_name: payload.file_name || 'Dynamic Name',
+                        status: 'PENDING',
+                        created_at: new Date().toLocaleString(),
+                        output_file: null
+                    });
+                    
+                    showToast("Task Queued Successfully!");
+                    
+                    // Switch to creations tab to see progress
+                    setTimeout(() => {
+                        document.querySelector('.nav-item:nth-child(3)').click();
+                    }, 1000);
+                    
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Request failed');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Generate Animation';
+            }
+        });
+
+        // LocalStorage Management
+        function getTasks() {
+            return JSON.parse(localStorage.getItem('paperanimator_tasks') || '[]');
+        }
+
+        function saveTaskToLocalStorage(task) {
+            const tasks = getTasks();
+            tasks.unshift(task); // Add to top
+            localStorage.setItem('paperanimator_tasks', JSON.stringify(tasks));
+        }
+
+        function updateTaskInLocalStorage(taskId, updates) {
+            const tasks = getTasks();
+            const index = tasks.findIndex(t => t.id === taskId);
+            if (index !== -1) {
+                tasks[index] = { ...tasks[index], ...updates };
+                localStorage.setItem('paperanimator_tasks', JSON.stringify(tasks));
+            }
+        }
+        
+        function clearTasks() {
+            localStorage.removeItem('paperanimator_tasks');
+            renderCreations();
+        }
+
+        // Polling state
+        let pollingInterval = null;
+
+        function renderCreations() {
+            const list = document.getElementById('creations-list');
+            const tasks = getTasks();
+            
+            if (tasks.length === 0) {
+                list.innerHTML = `<div class="empty-state">No animations created yet.</div>`;
+                return;
+            }
+
+            list.innerHTML = `<div style="text-align:right;margin-bottom:1rem"><button onclick="clearTasks()" class="btn" style="background:var(--border);font-size:0.8rem;padding:0.5rem 1rem">Clear History</button></div>`;
+
+            let hasActiveTasks = false;
+
+            tasks.forEach(task => {
+                if (task.status === 'PENDING' || task.status === 'PROGRESS') {
+                    hasActiveTasks = true;
+                }
+                
+                let actionBtn = '';
+                if (task.status === 'SUCCESS' && task.output_file) {
+                    actionBtn = `<div style="font-size: 0.8rem; color: var(--success); word-break: break-all;">Output: ${task.output_file}</div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'creation-card';
+                card.innerHTML = `
+                    <div class="creation-info">
+                        <h3>"${task.target_text}"</h3>
+                        <div class="creation-meta">${task.file_name} • ${task.created_at}</div>
+                        ${actionBtn}
+                    </div>
+                    <div class="status-badge status-${task.status.toLowerCase()}" id="badge-${task.id}">
+                        ${task.status}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            // Start polling if there are active tasks
+            if (hasActiveTasks && !pollingInterval) {
+                pollingInterval = setInterval(pollActiveTasks, 2000);
+            } else if (!hasActiveTasks && pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        async function pollActiveTasks() {
+            const tasks = getTasks().filter(t => t.status === 'PENDING' || t.status === 'PROGRESS');
+            
+            if (tasks.length === 0) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                return;
+            }
+            
+            let changed = false;
+
+            for (const task of tasks) {
+                try {
+                    const res = await fetch(`/api/generate/status/${task.id}/`);
+                    const data = await res.json();
+                    
+                    if (data.status !== task.status) {
+                        changed = true;
+                        updateTaskInLocalStorage(task.id, { 
+                            status: data.status,
+                            output_file: data.result ? data.result.output_file : null
+                        });
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }
+
+            if (changed) {
+                renderCreations(); // re-render list
+            }
+        }
+        
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            adjustPreviewBox();
+            fetchPreview(); // Initial preview fetch
+            renderCreations();
+        });
+        
+    </script>
+</body>
+</html>

@@ -110,7 +110,41 @@ paper_animation/
 
 ## Usage
 
-### Running Module 2 (Video Generator)
+### Running the API & Asynchronous Worker
+
+PaperAnimator now includes a Django-based REST API with Celery asynchronous task processing for video generation.
+
+1. **Ensure Redis is running** on your local machine (`redis://localhost:6379/0`).
+2. **Start the Django Server** (in a new terminal):
+   ```bash
+   python manage.py runserver
+   ```
+3. **Start the Celery Worker** (in a new terminal):
+   ```bash
+   # On Windows, using the solo pool is recommended:
+   celery -A backend worker -l info -P solo
+   ```
+
+**Using the API:**
+- **Trigger Generation:**
+  `POST /api/generate/`
+  ```json
+  {
+      "target_text": "Hello World",
+      "aspect_ratio": "1",
+      "n_images": 12,
+      "file_name": "custom_output.mp4" 
+  }
+  ```
+  *Response:* `{"success": true, "task_id": "uuid...", "status": "PENDING"}`
+
+- **Check Status:**
+  `GET /api/generate/status/<task_id>/`
+  *Response:* `{"task_id": "uuid...", "status": "SUCCESS", "result": {"output_file": "...", "file_name": "..."}}`
+
+---
+
+### Running Module 2 (Video Generator) via CLI
 
 To run the primary video generation pipeline, execute:
 
