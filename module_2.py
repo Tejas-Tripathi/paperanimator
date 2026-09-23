@@ -143,7 +143,8 @@ def generate_module_2_frames(
     aspect_ratio,
     n_images,
     is_test=False,
-    config=None
+    config=None,
+    progress_callback=None
 ):
     config = get_merged_config(config)
     SOURCE_SCALE = config["SOURCE_SCALE"]
@@ -249,6 +250,9 @@ def generate_module_2_frames(
         frame_path = FRAMES_DIR / f"{name_prefix}_{index:04d}.png"
         final_frame.save(str(frame_path), "PNG")
         frame_paths.append(frame_path)
+        
+        if progress_callback:
+            progress_callback(index, n_images)
 
     return frame_paths
 
@@ -413,7 +417,7 @@ def select_number_of_images(config):
 # MAIN
 # ============================================================
 
-def generate_animation_video(target_text, aspect_ratio_key, n_images, output_filename=None, config=None):
+def generate_animation_video(target_text, aspect_ratio_key, n_images, output_filename=None, config=None, progress_callback=None, output_dir=None):
     config = get_merged_config(config)
     aspect_ratios = config["M1_ASPECT_RATIOS"]
     if aspect_ratio_key not in aspect_ratios:
@@ -430,18 +434,25 @@ def generate_animation_video(target_text, aspect_ratio_key, n_images, output_fil
         n_images=n_images,
         is_test=False,
         config=config,
+        progress_callback=progress_callback
     )
 
     out_w = aspect_ratio["width"]
     out_h = aspect_ratio["height"]
     
+    if output_dir:
+        out_path_dir = Path(output_dir)
+        out_path_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        out_path_dir = OUTPUT_DIR
+
     if output_filename:
         if not output_filename.endswith('.mp4'):
             output_filename += '.mp4'
-        output_path = OUTPUT_DIR / output_filename
+        output_path = out_path_dir / output_filename
     else:
         import uuid
-        output_path = OUTPUT_DIR / f"paper_animation_{uuid.uuid4().hex[:8]}.mp4"
+        output_path = out_path_dir / f"paper_animation_{uuid.uuid4().hex[:8]}.mp4"
         
     create_video(frame_paths, out_w, out_h, output_path=output_path, config=config)
     return str(output_path)

@@ -29,6 +29,11 @@ Whether you're creating social media shorts, typography experiments, or dynamic 
   <img src="samples/sample_video.gif" alt="PaperAnimator Sample Animation">
 </p>
 
+### UI Demo
+<p align="center">
+  <video src="samples/ui_sample.mp4" controls width="100%"></video>
+</p>
+
 ---
 
 ## Features
@@ -40,6 +45,12 @@ Whether you're creating social media shorts, typography experiments, or dynamic 
 - **Video Assembly:** Compiles rendered frames into `.mp4` video automatically.
 - **Multiple Aspect Ratios:** Built-in support for 9:16 (Shorts/Reels), 16:9, 1:1, and 4:5 formats.
 - **Stable Alignment Engine:** Generates large source canvases and crops them to perfectly lock the target word to the center of the video (Module 2).
+
+### 🚀 Recent Major Updates
+- **Django Web UI:** A sleek, 3-part layout (Sidebar, Live Preview, Settings Panel) to generate animations and adjust visual parameters interactively.
+- **Celery Background Tasks:** Robust background worker support using Celery and Redis to handle video generation without blocking the UI.
+- **Persistent Progress Tracking:** Real-time generation progress and status updates (`PENDING`, `RUNNING`, `SUCCESS`) tracked directly in the SQLite database.
+- **Native OS Integration:** A built-in native Windows folder picker for configuring custom output paths directly from the browser, and one-click `Open` / `Open File Location` actions for completed videos.
 
 ---
 
@@ -199,12 +210,13 @@ To work on this project:
 
 ## Contributing
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Test locally and verify the generated output.
-4. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-5. Push to the Branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request
+1. Fork the Project.
+2. **Important:** Take a pull of the `dev` branch. All new work should be based on this branch.
+3. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+4. Test locally and verify the generated output.
+5. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+6. Push to the Branch (`git push origin feature/AmazingFeature`).
+7. Open a Pull Request **against the `dev` branch**.
 
 ---
 
